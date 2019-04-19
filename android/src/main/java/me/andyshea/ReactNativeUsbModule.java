@@ -20,7 +20,10 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Locale;
@@ -60,6 +63,10 @@ public class ReactNativeUsbModule extends ReactContextBaseJavaModule {
               + Character.digit(hex.charAt(i + 1), 16));
     }
     return data;
+  }
+
+  private static byte[] base64ToBytes(String base64) throws UnsupportedEncodingException {
+    return Base64.getDecoder().decode(base64.getBytes(StandardCharsets.UTF_8));
   }
 
   public ReactNativeUsbModule(ReactApplicationContext reactContext) {
@@ -141,25 +148,25 @@ public class ReactNativeUsbModule extends ReactContextBaseJavaModule {
 
     // first endpoint should be of type interrupt with direction of in
     UsbEndpoint endpointIn = usbInterface.getEndpoint(0);
-    if (endpointIn.getType() != UsbConstants.USB_ENDPOINT_XFER_INT) {
-      rejectConnectionPromise("E105", "First endpoint is not interrupt type");
-      return;
-    }
-    if (endpointIn.getDirection() != UsbConstants.USB_DIR_IN) {
-      rejectConnectionPromise("E106", "First endpoint direction is not in");
-      return;
-    }
-
-    // second endpoint should be of type interrupt with direction of out
+//    if (endpointIn.getType() != UsbConstants.USB_ENDPOINT_XFER_INT) {
+//      rejectConnectionPromise("E105", "First endpoint is not interrupt type");
+//      return;
+//    }
+//    if (endpointIn.getDirection() != UsbConstants.USB_DIR_IN) {
+//      rejectConnectionPromise("E106", "First endpoint direction is not in");
+//      return;
+//    }
+//
+//    // second endpoint should be of type interrupt with direction of out
     UsbEndpoint endpointOut = usbInterface.getEndpoint(1);
-    if (endpointOut.getType() != UsbConstants.USB_ENDPOINT_XFER_INT) {
-      rejectConnectionPromise("E107", "Second endpoint is not interrupt type");
-      return;
-    }
-    if (endpointOut.getDirection() != UsbConstants.USB_DIR_OUT) {
-      rejectConnectionPromise("E108", "Second endpoint direction is not out");
-      return;
-    }
+//    if (endpointOut.getType() != UsbConstants.USB_ENDPOINT_XFER_INT) {
+//      rejectConnectionPromise("E107", "Second endpoint is not interrupt type");
+//      return;
+//    }
+//    if (endpointOut.getDirection() != UsbConstants.USB_DIR_OUT) {
+//      rejectConnectionPromise("E108", "Second endpoint direction is not out");
+//      return;
+//    }
 
     this.device = device;
     this.endpointIn = endpointIn;
@@ -169,8 +176,8 @@ public class ReactNativeUsbModule extends ReactContextBaseJavaModule {
     if (connection != null && connection.claimInterface(usbInterface, true)) {
       Log.d(TAG, "USB device opened successfully");
       this.connection = connection;
-      Thread thread = new Thread(reader);
-      thread.start();
+//      Thread thread = new Thread(reader);
+//      thread.start();
       connectionPromise.resolve(null);
       connectionPromise = null;
     } else {
@@ -188,25 +195,41 @@ public class ReactNativeUsbModule extends ReactContextBaseJavaModule {
         promise.reject("E200", error);
       }
 
-      synchronized (locker) {
-        int writeBufferMaxLength = endpointOut.getMaxPacketSize();
-        ByteBuffer writeBuffer = ByteBuffer.allocate(writeBufferMaxLength);
-        UsbRequest writeRequest = new UsbRequest();
-        writeRequest.initialize(connection, endpointOut);
-        writeBuffer.put(hexStringToBytes(data));
+      byte[] buffer =
+        {
+          (byte) 128,
+          (byte) 37,
+          (byte) 0,
+          (byte) 0,
+          (byte) 0,
+          (byte) 0,
+          (byte) 8
+        };
 
-        if (!writeRequest.queue(writeBuffer, writeBufferMaxLength)) {
-          String error = "Write request queue failed";
-          Log.e(TAG, error);
-          promise.reject("E201", error);
-        }
+      byte[] print = base64ToBytes(data);
 
-        Log.d(TAG, "write request sent, waiting for confirmation...");
-        if (connection.requestWait() == writeRequest) {
-          Log.d(TAG, "write confirmation received!");
-          promise.resolve(null);
-        }
-      }
+      connection.controlTransfer(0, 32, 0, 0, buffer, 7, 0);
+      connection.bulkTransfer(endpointIn, print, print.length, 0);
+
+//      synchronized (locker) {
+//        int writeBufferMaxLength = endpointOut.getMaxPacketSize();
+//        ByteBuffer writeBuffer = ByteBuffer.allocate(writeBufferMaxLength);
+//        UsbRequest writeRequest = new UsbRequest();
+//        writeRequest.initialize(connection, endpointOut);
+//        writeBuffer.put(hexStringToBytes(data));
+//
+//        if (!writeRequest.queue(writeBuffer, writeBufferMaxLength)) {
+//          String error = "Write request queue failed";
+//          Log.e(TAG, error);
+//          promise.reject("E201", error);
+//        }
+//
+//        Log.d(TAG, "write request sent, waiting for confirmation...");
+//        if (connection.requestWait() == writeRequest) {
+//          Log.d(TAG, "write confirmation received!");
+//          promise.resolve(null);
+//        }
+//      }
     }
     catch (Exception e) {
       Log.d(TAG, e.getMessage());

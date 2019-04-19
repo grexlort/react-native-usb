@@ -29,7 +29,7 @@ class ReactNativeUsb extends EventEmitter {
   }
 
   async write(data) {
-    return BaseReactNativeUsb.write(Buffer.from(data).toString('hex'));
+    return BaseReactNativeUsb.write(data);
   }
 
   async disconnect() {
