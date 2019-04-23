@@ -210,6 +210,8 @@ public class ReactNativeUsbModule extends ReactContextBaseJavaModule {
 
       connection.controlTransfer(0, 32, 0, 0, buffer, 7, 0);
       connection.bulkTransfer(endpointIn, print, print.length, 0);
+      Log.d(TAG, "bulk write finished!");
+      promise.resolve(null);
 
 //      synchronized (locker) {
 //        int writeBufferMaxLength = endpointOut.getMaxPacketSize();
