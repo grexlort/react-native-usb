@@ -5,13 +5,11 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.hardware.usb.UsbConstants;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbEndpoint;
 import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
-import android.hardware.usb.UsbRequest;
 import android.util.Log;
 
 import com.facebook.react.bridge.Promise;
@@ -20,10 +18,6 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Locale;
@@ -65,8 +59,8 @@ public class ReactNativeUsbModule extends ReactContextBaseJavaModule {
     return data;
   }
 
-  private static byte[] base64ToBytes(String base64) throws UnsupportedEncodingException {
-    return Base64.getDecoder().decode(base64.getBytes(StandardCharsets.UTF_8));
+  private static byte[] base64ToBytes(String base64) {
+    return android.util.Base64.decode(base64, android.util.Base64.DEFAULT);
   }
 
   public ReactNativeUsbModule(ReactApplicationContext reactContext) {
